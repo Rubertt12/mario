@@ -62,6 +62,21 @@ const handleTouch = (event) => {
     jump();
 };
 
+const jumpMobile = () => {
+    if (!isJumping) {
+        isJumping = true;
+        jumpCounter++;
+        document.getElementById('jumpCounter').textContent = jumpCounter;
+
+        mario.classList.add('jump');
+
+        setTimeout(() => {
+            mario.classList.remove('jump');
+            isJumping = false;
+        }, 500);
+    }
+};
+
 const loop = setInterval(() => {
     const pipePosition = pipe.offsetLeft;
     const marioPosition = parseFloat(window.getComputedStyle(mario).bottom);
