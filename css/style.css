@@ -65,6 +65,25 @@
 }
 
 
+
+.counter {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    color: #333;
+}
+
+
+.ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 10vh; /* Utilizando viewport height para a altura do chão */
+    
+}
+
+
 @keyframes pipe-animation{
 
 from{
@@ -116,5 +135,15 @@ to{
 
     to {
         right: 100%;
+    }
+}
+
+
+@keyframes run {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(100vw); /* Movendo o dinossauro da esquerda para a direita */
     }
 }
