@@ -6,12 +6,20 @@ const jump = () => {
 
     setTimeout(() => {
         mario.classList.remove('jump');
+        isJumping = false;
     }, 500);
 
 }
 
-const loop = setInterval(()=> {
 
+const handleTouch = (event) => {
+    jump();
+}
+
+
+
+
+const loop = setInterval(()=> {
 const pipePosition = pipe.offsetLeft;
 const marioPosition = window.getComputedStyle(mario).bottom.replace('px', '');
 
@@ -39,3 +47,4 @@ clearInterval(loop);
 } , 10);
 
 document.addEventListener('keydown', jump);
+document.addEventListener('touchstart', handleTouch);
