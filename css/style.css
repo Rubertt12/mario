@@ -17,7 +17,7 @@
     border-radius: 5px;
     border-bottom: 15px solid rgb(35, 160, 35);
     margin: 0 auto;
-    position: relative;
+    position: fixed;
     overflow: hidden;
     background: linear-gradient(#87ceeb, #e8f6ff);
 }
