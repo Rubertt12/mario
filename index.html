@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#79c8ff">
-    <meta name="description" content="Mario Jump - pule os canos, marque seus pulos e tente bater seu recorde.">
+    <meta name="description" content="Mario Jump - pule, colete moedas e energia de fogo e enfrente tartarugas.">
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/gameplay-v2.css">
     <script src="/js/script.js" defer></script>
     <title>Mario Jump</title>
 </head>
@@ -33,6 +34,18 @@
                         <span class="score-card__label">Pulos</span>
                         <strong class="score-card__value" id="jumpCounter">00</strong>
                     </div>
+                    <div class="score-card score-card--coins">
+                        <span class="score-card__label">Moedas</span>
+                        <strong class="score-card__value" id="coinCounter">00</strong>
+                    </div>
+                    <div class="score-card score-card--ko">
+                        <span class="score-card__label">KOs</span>
+                        <strong class="score-card__value" id="koCounter">00</strong>
+                    </div>
+                    <div class="score-card score-card--fire">
+                        <span class="score-card__label">Fogo</span>
+                        <strong class="score-card__value" id="ammoCounter">00</strong>
+                    </div>
                     <div class="score-card score-card--best">
                         <span class="score-card__label">Recorde</span>
                         <strong class="score-card__value" id="bestCounter">00</strong>
@@ -42,8 +55,8 @@
 
             <div class="start-hint" id="startHint">
                 <span class="start-hint__title">Pronto?</span>
-                <span class="start-hint__desktop">ESPAÇO / ↑ para pular</span>
-                <span class="start-hint__mobile">Toque na tela para pular</span>
+                <span class="start-hint__desktop">ESPAÇO / ↑ pula · F / ENTER atira</span>
+                <span class="start-hint__mobile">Use os botões para pular e atirar</span>
             </div>
 
             <img src="/images/mario.gif" class="mario" id="mario" alt="Mario correndo">
@@ -51,6 +64,16 @@
 
             <div class="ground" aria-hidden="true">
                 <div class="ground__grass"></div>
+            </div>
+
+            <div class="weapon-tip" aria-hidden="true">
+                <kbd>F</kbd><kbd>ENTER</kbd>
+                <span>atira quando tiver 🔥</span>
+            </div>
+
+            <div class="mobile-actions" aria-label="Controles do jogo">
+                <button class="game-action" id="jumpButton" type="button">⬆ PULAR</button>
+                <button class="game-action game-action--fire" id="fireButton" type="button" disabled>🔥 ATIRAR</button>
             </div>
 
             <div class="game-over" id="gameOver" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
@@ -68,13 +91,21 @@
                             <span>Recorde</span>
                             <strong id="finalBest">00</strong>
                         </div>
+                        <div>
+                            <span>Moedas</span>
+                            <strong id="finalCoins">00</strong>
+                        </div>
+                        <div>
+                            <span>Tartarugas</span>
+                            <strong id="finalKo">00</strong>
+                        </div>
                     </div>
 
                     <button class="restart-button" id="restartButton" type="button">
                         <img src="/images/restart.png" alt="" aria-hidden="true">
                         Jogar de novo
                     </button>
-                    <span class="game-over__tip">Dica: no PC também funciona com W.</span>
+                    <span class="game-over__tip">Pegue as flores de fogo para carregar seus disparos.</span>
                 </div>
             </div>
 
