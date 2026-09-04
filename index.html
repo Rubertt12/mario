@@ -1,26 +1,90 @@
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#79c8ff">
+    <meta name="description" content="Mario Jump - pule os canos, marque seus pulos e tente bater seu recorde.">
     <link rel="stylesheet" href="/css/style.css">
     <script src="/js/script.js" defer></script>
     <title>Mario Jump</title>
 </head>
 <body>
-    <div class="game-board">
-        <img src="/images/clouds.png" class="cloud">
-        <img src="/images/mario.gif" class="mario ">
-        <img src="/images/pipe.png" class="pipe">
-        <div class="counter">Jumps: <span id="jumpCounter">00</span></div>
-        <div class="ground"></div>
-        
+    <main class="game-shell">
+        <section class="game-board" id="gameBoard" aria-label="Mario Jump">
+            <div class="sky-glow" aria-hidden="true"></div>
+            <div class="sun" aria-hidden="true"></div>
+            <img src="/images/clouds.png" class="cloud cloud--one" alt="" aria-hidden="true">
+            <img src="/images/clouds.png" class="cloud cloud--two" alt="" aria-hidden="true">
 
-        <div class="botao-container" id="botaoContainer">
-            <button class="botao" id="restartButton" onclick="restartGame()">Reiniciar</button>
-        </div>
+            <div class="hill hill--back" aria-hidden="true"></div>
+            <div class="hill hill--front" aria-hidden="true"></div>
+            <div class="bush bush--one" aria-hidden="true"></div>
+            <div class="bush bush--two" aria-hidden="true"></div>
 
-    </div>
+            <header class="game-hud">
+                <div class="brand" aria-label="Mario Jump">
+                    <span class="brand__mario">MARIO</span>
+                    <span class="brand__jump">JUMP</span>
+                </div>
 
-    
+                <div class="scoreboard" aria-label="Placar">
+                    <div class="score-card">
+                        <span class="score-card__label">Pulos</span>
+                        <strong class="score-card__value" id="jumpCounter">00</strong>
+                    </div>
+                    <div class="score-card score-card--best">
+                        <span class="score-card__label">Recorde</span>
+                        <strong class="score-card__value" id="bestCounter">00</strong>
+                    </div>
+                </div>
+            </header>
+
+            <div class="start-hint" id="startHint">
+                <span class="start-hint__title">Pronto?</span>
+                <span class="start-hint__desktop">ESPAÇO / ↑ para pular</span>
+                <span class="start-hint__mobile">Toque na tela para pular</span>
+            </div>
+
+            <img src="/images/mario.gif" class="mario" id="mario" alt="Mario correndo">
+            <img src="/images/pipe.png" class="pipe" id="pipe" alt="Cano verde">
+
+            <div class="ground" aria-hidden="true">
+                <div class="ground__grass"></div>
+            </div>
+
+            <div class="game-over" id="gameOver" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
+                <div class="game-over__card">
+                    <span class="game-over__eyebrow">Fim da corrida</span>
+                    <h1 id="gameOverTitle">GAME OVER</h1>
+                    <p class="game-over__message" id="resultMessage">Quase! Tenta mais uma.</p>
+
+                    <div class="game-over__stats">
+                        <div>
+                            <span>Pulos</span>
+                            <strong id="finalScore">00</strong>
+                        </div>
+                        <div>
+                            <span>Recorde</span>
+                            <strong id="finalBest">00</strong>
+                        </div>
+                    </div>
+
+                    <button class="restart-button" id="restartButton" type="button">
+                        <img src="/images/restart.png" alt="" aria-hidden="true">
+                        Jogar de novo
+                    </button>
+                    <span class="game-over__tip">Dica: no PC também funciona com W.</span>
+                </div>
+            </div>
+
+            <div class="controls-tip" id="controlsTip" aria-hidden="true">
+                <span>ESPAÇO</span>
+                <span>↑</span>
+                <span>W</span>
+                <small>para pular</small>
+            </div>
+        </section>
+    </main>
 </body>
 </html>
