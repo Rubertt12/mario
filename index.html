@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#79c8ff">
-    <meta name="description" content="Mario Jump - pule, colete moedas e energia de fogo e enfrente tartarugas.">
+    <meta name="theme-color" content="#58422f">
+    <meta name="description" content="Fan game runner inspirado em Golden Axe III, com selecao de herois, inimigos, moedas e combate.">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/gameplay-v2.css">
+    <link rel="stylesheet" href="/css/characters.css">
     <script src="/js/script.js" defer></script>
-    <title>Mario Jump</title>
+    <title>Golden Axe III Run</title>
 </head>
 <body>
     <main class="game-shell">
-        <section class="game-board" id="gameBoard" aria-label="Mario Jump">
+        <section class="game-board" id="gameBoard" aria-label="Golden Axe III Run">
             <div class="sky-glow" aria-hidden="true"></div>
             <div class="sun" aria-hidden="true"></div>
             <img src="/images/clouds.png" class="cloud cloud--one" alt="" aria-hidden="true">
@@ -24,9 +25,9 @@
             <div class="bush bush--two" aria-hidden="true"></div>
 
             <header class="game-hud">
-                <div class="brand" aria-label="Mario Jump">
-                    <span class="brand__mario">MARIO</span>
-                    <span class="brand__jump">JUMP</span>
+                <div class="brand" aria-label="Golden Axe III Run">
+                    <span class="brand__mario">GOLDEN AXE</span>
+                    <span class="brand__jump">RUN</span>
                 </div>
 
                 <div class="scoreboard" aria-label="Placar">
@@ -43,7 +44,7 @@
                         <strong class="score-card__value" id="koCounter">00</strong>
                     </div>
                     <div class="score-card score-card--fire">
-                        <span class="score-card__label">Fogo</span>
+                        <span class="score-card__label">Magia</span>
                         <strong class="score-card__value" id="ammoCounter">00</strong>
                     </div>
                     <div class="score-card score-card--best">
@@ -53,14 +54,32 @@
                 </div>
             </header>
 
+            <div class="hero-status" id="heroStatus" aria-live="polite">
+                <div>
+                    <strong id="heroName">Guerreiro</strong>
+                    <span id="heroAbility">Escolha um personagem</span>
+                </div>
+            </div>
+            <button class="change-character" id="changeCharacterButton" type="button">Trocar heroi</button>
+
             <div class="start-hint" id="startHint">
-                <span class="start-hint__title">Pronto?</span>
-                <span class="start-hint__desktop">ESPAÇO / ↑ pula · F / ENTER atira</span>
-                <span class="start-hint__mobile">Use os botões para pular e atirar</span>
+                <span class="start-hint__title">Pronto para a batalha?</span>
+                <span class="start-hint__desktop">ESPAÇO / ↑ pula · F / ENTER usa magia</span>
+                <span class="start-hint__mobile">Use os botões para pular e atacar</span>
             </div>
 
-            <img src="/images/mario.gif" class="mario" id="mario" alt="Mario correndo">
-            <img src="/images/pipe.png" class="pipe" id="pipe" alt="Cano verde">
+            <div class="hero hero--kain" id="hero" role="img" aria-label="Guerreiro selecionado">
+                <span class="hero__body"></span>
+                <span class="hero__head"></span>
+                <span class="hero__leg hero__leg--a"></span>
+                <span class="hero__leg hero__leg--b"></span>
+                <span class="hero__arm hero__arm--a"></span>
+                <span class="hero__arm hero__arm--b"></span>
+                <span class="hero__weapon"></span>
+                <span class="hero__extra"></span>
+            </div>
+
+            <img src="/images/pipe.png" class="pipe" id="pipe" alt="Obstaculo de pedra">
 
             <div class="ground" aria-hidden="true">
                 <div class="ground__grass"></div>
@@ -68,17 +87,17 @@
 
             <div class="weapon-tip" aria-hidden="true">
                 <kbd>F</kbd><kbd>ENTER</kbd>
-                <span>atira quando tiver 🔥</span>
+                <span>usa magia quando tiver carga</span>
             </div>
 
             <div class="mobile-actions" aria-label="Controles do jogo">
                 <button class="game-action" id="jumpButton" type="button">⬆ PULAR</button>
-                <button class="game-action game-action--fire" id="fireButton" type="button" disabled>🔥 ATIRAR</button>
+                <button class="game-action game-action--fire" id="fireButton" type="button" disabled>✨ MAGIA</button>
             </div>
 
             <div class="game-over" id="gameOver" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
                 <div class="game-over__card">
-                    <span class="game-over__eyebrow">Fim da corrida</span>
+                    <span class="game-over__eyebrow">Fim da batalha</span>
                     <h1 id="gameOverTitle">GAME OVER</h1>
                     <p class="game-over__message" id="resultMessage">Quase! Tenta mais uma.</p>
 
@@ -96,7 +115,7 @@
                             <strong id="finalCoins">00</strong>
                         </div>
                         <div>
-                            <span>Tartarugas</span>
+                            <span>Inimigos</span>
                             <strong id="finalKo">00</strong>
                         </div>
                     </div>
@@ -105,7 +124,8 @@
                         <img src="/images/restart.png" alt="" aria-hidden="true">
                         Jogar de novo
                     </button>
-                    <span class="game-over__tip">Pegue as flores de fogo para carregar seus disparos.</span>
+                    <button class="change-character--gameover" id="changeCharacterGameOver" type="button">Trocar de heroi</button>
+                    <span class="game-over__tip">Cada guerreiro tem uma vantagem diferente.</span>
                 </div>
             </div>
 
@@ -114,6 +134,89 @@
                 <span>↑</span>
                 <span>W</span>
                 <small>para pular</small>
+            </div>
+
+            <div class="character-select" id="characterSelect" role="dialog" aria-modal="true" aria-labelledby="characterSelectTitle">
+                <div class="character-select__panel">
+                    <span class="character-select__eyebrow">Golden Axe III · fan game</span>
+                    <h1 id="characterSelectTitle">Escolha seu guerreiro</h1>
+                    <p class="character-select__intro">A escolha muda a jogabilidade. Clique em um personagem e entre na fase.</p>
+
+                    <div class="character-grid">
+                        <button class="character-card" type="button" data-character="kain">
+                            <span class="character-card__portrait" aria-hidden="true">
+                                <span class="hero hero--kain">
+                                    <span class="hero__body"></span><span class="hero__head"></span>
+                                    <span class="hero__leg hero__leg--a"></span><span class="hero__leg hero__leg--b"></span>
+                                    <span class="hero__arm hero__arm--a"></span><span class="hero__arm hero__arm--b"></span>
+                                    <span class="hero__weapon"></span><span class="hero__extra"></span>
+                                </span>
+                            </span>
+                            <strong>Kain Grinder</strong>
+                            <span class="character-card__role">Espadachim equilibrado</span>
+                            <span class="character-stats">
+                                <span>Salto <b>★★★</b></span>
+                                <span>Magia <b>★★★★</b></span>
+                                <span>Bônus <b>+1 carga</b></span>
+                            </span>
+                        </button>
+
+                        <button class="character-card" type="button" data-character="sarah">
+                            <span class="character-card__portrait" aria-hidden="true">
+                                <span class="hero hero--sarah">
+                                    <span class="hero__body"></span><span class="hero__head"></span>
+                                    <span class="hero__leg hero__leg--a"></span><span class="hero__leg hero__leg--b"></span>
+                                    <span class="hero__arm hero__arm--a"></span><span class="hero__arm hero__arm--b"></span>
+                                    <span class="hero__weapon"></span><span class="hero__extra"></span>
+                                </span>
+                            </span>
+                            <strong>Sarah Barn</strong>
+                            <span class="character-card__role">Rapida e acrobatica</span>
+                            <span class="character-stats">
+                                <span>Salto <b>★★★★★</b></span>
+                                <span>Magia <b>★★★</b></span>
+                                <span>Bônus <b>Salto duplo</b></span>
+                            </span>
+                        </button>
+
+                        <button class="character-card" type="button" data-character="proud">
+                            <span class="character-card__portrait" aria-hidden="true">
+                                <span class="hero hero--proud">
+                                    <span class="hero__body"></span><span class="hero__head"></span>
+                                    <span class="hero__leg hero__leg--a"></span><span class="hero__leg hero__leg--b"></span>
+                                    <span class="hero__arm hero__arm--a"></span><span class="hero__arm hero__arm--b"></span>
+                                    <span class="hero__weapon"></span><span class="hero__extra"></span>
+                                </span>
+                            </span>
+                            <strong>Proud Cragger</strong>
+                            <span class="character-card__role">Gigante de forca bruta</span>
+                            <span class="character-stats">
+                                <span>Salto <b>★★</b></span>
+                                <span>Forca <b>★★★★★</b></span>
+                                <span>Bônus <b>1 escudo</b></span>
+                            </span>
+                        </button>
+
+                        <button class="character-card" type="button" data-character="chronos">
+                            <span class="character-card__portrait" aria-hidden="true">
+                                <span class="hero hero--chronos">
+                                    <span class="hero__body"></span><span class="hero__head"></span>
+                                    <span class="hero__leg hero__leg--a"></span><span class="hero__leg hero__leg--b"></span>
+                                    <span class="hero__arm hero__arm--a"></span><span class="hero__arm hero__arm--b"></span>
+                                    <span class="hero__weapon"></span><span class="hero__extra"></span>
+                                </span>
+                            </span>
+                            <strong>Chronos “Evil” Lait</strong>
+                            <span class="character-card__role">Pantera veloz</span>
+                            <span class="character-stats">
+                                <span>Salto <b>★★★★★</b></span>
+                                <span>Magia <b>★★★★★</b></span>
+                                <span>Bônus <b>Disparo veloz</b></span>
+                            </span>
+                        </button>
+                    </div>
+                    <small class="character-select__note">Homenagem não oficial. Os visuais desta versão são originais e não usam sprites extraídos do jogo.</small>
+                </div>
             </div>
         </section>
     </main>
