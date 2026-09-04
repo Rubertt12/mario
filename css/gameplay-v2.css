@@ -1,0 +1,288 @@
+/* Gameplay v2: inimigos, coletaveis, projeteis e controles */
+.scoreboard {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: min(720px, 72vw);
+}
+
+.score-card--coins { background: rgba(208, 147, 18, .64); }
+.score-card--ko { background: rgba(67, 132, 63, .66); }
+.score-card--fire { background: rgba(202, 70, 31, .67); }
+
+.game-entity {
+    position: absolute;
+    z-index: 8;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.turtle {
+    width: clamp(48px, 5vw, 68px);
+    height: clamp(54px, 5.8vw, 78px);
+    bottom: calc(var(--ground-height) - 2px);
+    filter: drop-shadow(0 6px 3px rgba(24, 69, 39, .18));
+}
+
+.turtle__shell {
+    position: absolute;
+    left: 8%;
+    bottom: 9%;
+    width: 64%;
+    height: 59%;
+    border: 4px solid #165d31;
+    border-radius: 50% 54% 44% 48%;
+    background:
+        radial-gradient(circle at 42% 39%, rgba(255,255,255,.32) 0 8%, transparent 9%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0 10px, rgba(18,97,50,.22) 11px 14px),
+        #35ae56;
+    box-shadow: inset -7px -7px 0 rgba(12, 86, 39, .2);
+}
+
+.turtle__head {
+    position: absolute;
+    right: 2%;
+    top: 13%;
+    width: 39%;
+    height: 37%;
+    border: 3px solid #597812;
+    border-radius: 52% 58% 48% 52%;
+    background: #b9d637;
+    box-shadow: inset -4px -4px 0 rgba(91, 117, 16, .13);
+}
+
+.turtle__head::before {
+    content: "";
+    position: absolute;
+    right: 24%;
+    top: 24%;
+    width: 6px;
+    height: 8px;
+    border-radius: 50%;
+    background: #173b26;
+    box-shadow: 1px 0 0 #fff;
+}
+
+.turtle__foot {
+    position: absolute;
+    bottom: 0;
+    width: 28%;
+    height: 18%;
+    border-radius: 50% 50% 38% 38%;
+    background: #b9d637;
+    border: 2px solid #597812;
+    transform-origin: center;
+    animation: turtle-step .24s ease-in-out infinite alternate;
+}
+
+.turtle__foot--left { left: 12%; }
+.turtle__foot--right { right: 14%; animation-delay: -.12s; }
+
+.turtle.is-hit {
+    animation: turtle-hit .28s ease-out forwards;
+}
+
+.coin {
+    width: 30px;
+    height: 38px;
+    bottom: calc(var(--ground-height) + 76px);
+    border: 3px solid #b56d00;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #f4a900, #fff17a 48%, #f4b400 54%, #d98500);
+    box-shadow: inset 0 0 0 3px #ffd83f, 0 4px 9px rgba(112,77,0,.2);
+    animation: coin-spin .62s linear infinite;
+}
+
+.coin::after {
+    content: "";
+    position: absolute;
+    inset: 5px 9px;
+    border: 2px solid rgba(165,96,0,.54);
+    border-radius: 50%;
+}
+
+.fire-pickup {
+    bottom: calc(var(--ground-height) + 95px);
+    width: 46px;
+    height: 54px;
+    animation: pickup-float .7s ease-in-out infinite alternate;
+}
+
+.fire-pickup__flower {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 38px;
+    height: 34px;
+    transform: translateX(-50%);
+    border: 4px solid #f5dfbb;
+    border-radius: 48% 48% 45% 45%;
+    background:
+        radial-gradient(circle, #ffe66b 0 22%, #f36b22 23% 48%, #fff5dc 49% 100%);
+    box-shadow: 0 4px 9px rgba(153,60,20,.2);
+}
+
+.fire-pickup__stem {
+    position: absolute;
+    left: 50%;
+    bottom: 1px;
+    width: 8px;
+    height: 26px;
+    transform: translateX(-50%);
+    border-radius: 8px;
+    background: #24a14c;
+}
+
+.fire-pickup__stem::before,
+.fire-pickup__stem::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    width: 15px;
+    height: 9px;
+    border-radius: 70% 20% 70% 20%;
+    background: #3fbd5c;
+}
+
+.fire-pickup__stem::before { right: 4px; transform: rotate(25deg); }
+.fire-pickup__stem::after { left: 4px; transform: scaleX(-1) rotate(25deg); }
+
+.fireball {
+    width: 25px;
+    height: 25px;
+    border: 3px solid #fff2bd;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #fff 0 12%, #ffd83f 13% 34%, #ff7b24 35% 62%, #e9351e 63% 100%);
+    box-shadow: 0 0 12px rgba(255,111,34,.85), 0 0 28px rgba(255,192,47,.38);
+    animation: fireball-spin .22s linear infinite;
+}
+
+.pickup-pop {
+    position: absolute;
+    z-index: 18;
+    font-weight: 1000;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(24,58,76,.32);
+    pointer-events: none;
+    animation: pickup-pop .58s ease-out forwards;
+}
+
+.mobile-actions {
+    position: absolute;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: calc(var(--ground-height) + 18px);
+    z-index: 25;
+    display: none;
+    gap: 10px;
+}
+
+.game-action {
+    border: 2px solid rgba(255,255,255,.88);
+    min-width: 74px;
+    height: 54px;
+    padding: 0 13px;
+    border-radius: 17px;
+    font-size: 11px;
+    font-weight: 1000;
+    letter-spacing: .04em;
+    color: #fff;
+    background: rgba(21,61,84,.72);
+    box-shadow: 0 7px 0 rgba(14,55,76,.2), 0 10px 24px rgba(18,53,77,.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    touch-action: manipulation;
+}
+
+.game-action--fire {
+    background: rgba(208,67,27,.82);
+}
+
+.game-action:active {
+    transform: translateY(3px);
+    box-shadow: 0 4px 0 rgba(14,55,76,.2);
+}
+
+.game-action[disabled] {
+    opacity: .45;
+    filter: grayscale(.5);
+}
+
+.weapon-tip {
+    position: absolute;
+    left: clamp(18px, 4vw, 56px);
+    bottom: calc(var(--ground-height) + 20px);
+    z-index: 14;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid rgba(255,255,255,.58);
+    border-radius: 12px;
+    color: #173f58;
+    background: rgba(255,255,255,.58);
+    font-size: 10px;
+    font-weight: 850;
+    backdrop-filter: blur(6px);
+}
+
+.weapon-tip kbd {
+    padding: 4px 7px;
+    border: 1px solid rgba(23,63,88,.22);
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    background: #fff;
+    font: inherit;
+}
+
+.game-board.is-game-over .game-entity {
+    animation-play-state: paused !important;
+}
+
+@keyframes turtle-step {
+    to { transform: translateY(-3px) rotate(4deg); }
+}
+
+@keyframes turtle-hit {
+    55% { transform: translateY(-26px) rotate(35deg) scale(.9); opacity: 1; }
+    100% { transform: translateY(18px) rotate(110deg) scale(.45); opacity: 0; }
+}
+
+@keyframes coin-spin {
+    0% { transform: rotateY(0deg); }
+    50% { transform: rotateY(90deg) scaleX(.35); }
+    100% { transform: rotateY(180deg); }
+}
+
+@keyframes pickup-float {
+    to { transform: translateY(-9px); }
+}
+
+@keyframes fireball-spin {
+    to { rotate: 360deg; }
+}
+
+@keyframes pickup-pop {
+    0% { opacity: 0; transform: translateY(0) scale(.7); }
+    25% { opacity: 1; transform: translateY(-8px) scale(1.08); }
+    100% { opacity: 0; transform: translateY(-38px) scale(.9); }
+}
+
+@media (max-width: 900px) {
+    .game-hud { gap: 8px; padding: 0 12px; }
+    .scoreboard { gap: 5px; max-width: 76vw; }
+    .score-card { min-width: 64px; padding: 7px 8px; border-radius: 12px; }
+    .score-card__label { font-size: 8px; }
+    .score-card__value { font-size: 18px; }
+    .controls-tip, .weapon-tip { display: none; }
+    .mobile-actions { display: flex; }
+    .turtle { width: 50px; height: 58px; }
+}
+
+@media (max-width: 560px) {
+    .brand { transform: scale(.84) rotate(-2deg); transform-origin: top left; }
+    .scoreboard { width: calc(100vw - 112px); max-width: none; }
+    .score-card { flex: 1 1 44px; min-width: 48px; padding: 6px 4px; }
+    .score-card__label { letter-spacing: .04em; }
+    .score-card__value { font-size: 16px; }
+    .mobile-actions { right: 10px; bottom: calc(var(--ground-height) + 12px); }
+    .game-action { min-width: 66px; height: 48px; padding: 0 9px; }
+}
