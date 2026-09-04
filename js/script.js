@@ -1,5 +1,5 @@
 const gameBoard = document.getElementById('gameBoard');
-const mario = document.getElementById('mario');
+const hero = document.getElementById('hero');
 const pipe = document.getElementById('pipe');
 
 const jumpCounterEl = document.getElementById('jumpCounter');
@@ -7,6 +7,13 @@ const coinCounterEl = document.getElementById('coinCounter');
 const koCounterEl = document.getElementById('koCounter');
 const ammoCounterEl = document.getElementById('ammoCounter');
 const bestCounterEl = document.getElementById('bestCounter');
+
+const heroNameEl = document.getElementById('heroName');
+const heroAbilityEl = document.getElementById('heroAbility');
+const characterSelect = document.getElementById('characterSelect');
+const characterButtons = [...document.querySelectorAll('.character-card')];
+const changeCharacterButton = document.getElementById('changeCharacterButton');
+const changeCharacterGameOver = document.getElementById('changeCharacterGameOver');
 
 const startHint = document.getElementById('startHint');
 const gameOverEl = document.getElementById('gameOver');
@@ -19,13 +26,66 @@ const restartButton = document.getElementById('restartButton');
 const jumpButton = document.getElementById('jumpButton');
 const fireButton = document.getElementById('fireButton');
 
-const MARIO_RUNNING_SRC = '/images/mario.gif';
-const MARIO_GAME_OVER_SRC = '/images/game-over.png';
-const BEST_SCORE_KEY = 'marioJumpBest';
-const JUMP_DURATION = 560;
+const BEST_SCORE_KEY = 'goldenAxeRunBest';
 const MAX_AMMO = 9;
 
-let isJumping = false;
+const CHARACTERS = {
+    kain: {
+        name: 'Kain Grinder',
+        className: 'hero--kain',
+        ability: 'Equilibrado · +1 carga de magia por item',
+        maxJumps: 1,
+        jumpVelocity: 690,
+        gravity: 1780,
+        projectileSpeed: 650,
+        magicPickup: 4,
+        stompReward: 1,
+        hitboxInset: 8,
+        shield: 0,
+    },
+    sarah: {
+        name: 'Sarah Barn',
+        className: 'hero--sarah',
+        ability: 'Acrobatica · salto duplo',
+        maxJumps: 2,
+        jumpVelocity: 735,
+        gravity: 1810,
+        projectileSpeed: 690,
+        magicPickup: 3,
+        stompReward: 1,
+        hitboxInset: 12,
+        shield: 0,
+    },
+    proud: {
+        name: 'Proud Cragger',
+        className: 'hero--proud',
+        ability: 'Forca bruta · 1 escudo contra inimigo',
+        maxJumps: 1,
+        jumpVelocity: 630,
+        gravity: 1710,
+        projectileSpeed: 560,
+        magicPickup: 3,
+        stompReward: 2,
+        hitboxInset: 5,
+        shield: 1,
+    },
+    chronos: {
+        name: 'Chronos “Evil” Lait',
+        className: 'hero--chronos',
+        ability: 'Pantera veloz · salto duplo e magia rapida',
+        maxJumps: 2,
+        jumpVelocity: 755,
+        gravity: 1880,
+        projectileSpeed: 820,
+        magicPickup: 3,
+        stompReward: 1,
+        hitboxInset: 11,
+        shield: 0,
+    },
+};
+
+let selectedCharacterKey = null;
+let selectedCharacter = null;
 let isRunning = false;
 let isGameOver = false;
 let jumpCounter = 0;
@@ -38,6 +98,11 @@ let lastFrameTime = performance.now();
 let nextEnemyAt = 0;
 let nextCoinAt = 0;
 let nextFireAt = 0;
+let heroY = 0;
+let heroVelocity = 0;
+let jumpsUsed = 0;
+let shieldCharges = 0;
+let invulnerableUntil = 0;
 
 const enemies = [];
 const collectibles = [];
@@ -52,13 +117,27 @@ try {
 const formatScore = (value) => String(Math.max(0, value)).padStart(2, '0');
 const randomBetween = (min, max) => Math.random() * (max - min) + min;
 
+const updateHeroStatus = () => {
+    if (!selectedCharacter) {
+        heroNameEl.textContent = 'Guerreiro';
+        heroAbilityEl.textContent = 'Escolha um personagem';
+        return;
+    }
+
+    heroNameEl.textContent = selectedCharacter.name;
+    const shieldText = selectedCharacter.shield ? ` · Escudo ${shieldCharges}/${selectedCharacter.shield}` : '';
+    heroAbilityEl.textContent = `${selectedCharacter.ability}${shieldText}`;
+};
+
 const updateHud = () => {
     jumpCounterEl.textContent = formatScore(jumpCounter);
     coinCounterEl.textContent = formatScore(coinCounter);
     koCounterEl.textContent = formatScore(koCounter);
     ammoCounterEl.textContent = formatScore(ammo);
     bestCounterEl.textContent = formatScore(bestScore);
-    fireButton.disabled = ammo <= 0 || isGameOver;
+    fireButton.disabled = !selectedCharacter || ammo <= 0 || isGameOver;
+    jumpButton.disabled = !selectedCharacter || isGameOver;
+    updateHeroStatus();
 };
 
 const overlaps = (a, b, inset = 0) => (
@@ -69,15 +148,15 @@ const overlaps = (a, b, inset = 0) => (
 );
 
 const startGame = () => {
-    if (isRunning || isGameOver) return;
+    if (!selectedCharacter || isRunning || isGameOver) return;
 
     const now = performance.now();
     isRunning = true;
     gameBoard.classList.add('is-running');
     startHint.classList.add('is-hidden');
-    nextEnemyAt = now + 3300;
-    nextCoinAt = now + 1700;
-    nextFireAt = now + 6500;
+    nextEnemyAt = now + 3200;
+    nextCoinAt = now + 1500;
+    nextFireAt = now + 5400;
 };
 
 const showPop = (text, sourceRect, className = '') => {
@@ -91,24 +170,60 @@ const showPop = (text, sourceRect, className = '') => {
     window.setTimeout(() => pop.remove(), 620);
 };
 
+const applyCharacterVisual = () => {
+    hero.classList.remove('hero--kain', 'hero--sarah', 'hero--proud', 'hero--chronos', 'is-dead', 'is-shielded');
+    if (!selectedCharacter) return;
+    hero.classList.add(selectedCharacter.className);
+    hero.setAttribute('aria-label', selectedCharacter.name);
+};
+
+const selectCharacter = (key) => {
+    const profile = CHARACTERS[key];
+    if (!profile) return;
+
+    selectedCharacterKey = key;
+    selectedCharacter = profile;
+    shieldCharges = profile.shield;
+    invulnerableUntil = 0;
+    heroY = 0;
+    heroVelocity = 0;
+    jumpsUsed = 0;
+
+    applyCharacterVisual();
+    hero.style.transform = 'translate3d(0, 0, 0)';
+    characterSelect.hidden = true;
+    gameBoard.classList.add('has-character');
+    startHint.classList.remove('is-hidden');
+    updateHud();
+};
+
 const jump = (event) => {
-    if (isGameOver) return;
+    if (!selectedCharacter || isGameOver) return;
     if (event?.target?.closest?.('button')) return;
-    if (isJumping) return;
+    if (jumpsUsed >= selectedCharacter.maxJumps) return;
 
     startGame();
-    isJumping = true;
+    jumpsUsed += 1;
+    heroVelocity = selectedCharacter.jumpVelocity;
     jumpCounter += 1;
     updateHud();
+};
 
-    mario.classList.remove('jump');
-    void mario.offsetWidth;
-    mario.classList.add('jump');
+const updateHeroPhysics = (dt) => {
+    if (!selectedCharacter) return;
 
-    window.setTimeout(() => {
-        mario.classList.remove('jump');
-        isJumping = false;
-    }, JUMP_DURATION);
+    if (heroY > 0 || heroVelocity > 0) {
+        heroY += heroVelocity * dt;
+        heroVelocity -= selectedCharacter.gravity * dt;
+
+        if (heroY <= 0) {
+            heroY = 0;
+            heroVelocity = 0;
+            jumpsUsed = 0;
+        }
+    }
+
+    hero.style.transform = `translate3d(0, ${-heroY}px, 0)`;
 };
 
 const createTurtleElement = () => {
@@ -131,18 +246,18 @@ const spawnEnemy = (now) => {
     enemies.push({
         el,
         x: gameBoard.clientWidth + 35,
-        speed: randomBetween(145, 195) + Math.min(55, jumpCounter * 1.2),
+        speed: randomBetween(145, 190) + Math.min(62, jumpCounter * 1.15),
         hit: false,
     });
 
-    nextEnemyAt = now + randomBetween(4800, 6800);
+    nextEnemyAt = now + randomBetween(4200, 6200);
 };
 
 const spawnCoin = (now) => {
     const el = document.createElement('div');
     el.className = 'game-entity coin';
     el.setAttribute('aria-hidden', 'true');
-    el.style.bottom = `calc(var(--ground-height) + ${Math.round(randomBetween(65, 145))}px)`;
+    el.style.bottom = `calc(var(--ground-height) + ${Math.round(randomBetween(60, 160))}px)`;
     gameBoard.appendChild(el);
 
     collectibles.push({
@@ -152,10 +267,10 @@ const spawnCoin = (now) => {
         speed: randomBetween(155, 195),
     });
 
-    nextCoinAt = now + randomBetween(2400, 3800);
+    nextCoinAt = now + randomBetween(2200, 3500);
 };
 
-const spawnFirePickup = (now) => {
+const spawnMagicPickup = (now) => {
     const el = document.createElement('div');
     el.className = 'game-entity fire-pickup';
     el.setAttribute('aria-hidden', 'true');
@@ -164,12 +279,12 @@ const spawnFirePickup = (now) => {
 
     collectibles.push({
         el,
-        type: 'fire',
+        type: 'magic',
         x: gameBoard.clientWidth + 40,
         speed: 165,
     });
 
-    nextFireAt = now + randomBetween(9500, 13500);
+    nextFireAt = now + randomBetween(8200, 11600);
 };
 
 const removeFromArray = (list, index) => {
@@ -177,40 +292,54 @@ const removeFromArray = (list, index) => {
     item?.el?.remove();
 };
 
-const defeatEnemy = (enemy, byFire = false) => {
+const defeatEnemy = (enemy, source = 'stomp') => {
     if (enemy.hit) return;
     enemy.hit = true;
     koCounter += 1;
-    coinCounter += byFire ? 2 : 1;
+
+    let reward = 1;
+    let label = '+1 🪙  PISÃO!';
+
+    if (source === 'magic') {
+        reward = 2;
+        label = '+2 🪙  MAGIA!';
+    } else if (source === 'shield') {
+        reward = 1;
+        label = '🛡 BLOQUEOU!';
+    } else if (selectedCharacter) {
+        reward = selectedCharacter.stompReward;
+        label = `+${reward} 🪙  PISÃO!`;
+    }
+
+    coinCounter += reward;
     updateHud();
 
     const rect = enemy.el.getBoundingClientRect();
-    showPop(byFire ? '+2 🪙  BOOM!' : '+1 🪙  PISÃO!', rect);
+    showPop(label, rect);
     enemy.el.classList.add('is-hit');
-
     window.setTimeout(() => enemy.el.remove(), 300);
 };
 
 const fire = (event) => {
     if (event) event.preventDefault();
-    if (isGameOver || ammo <= 0) return;
+    if (!selectedCharacter || isGameOver || ammo <= 0) return;
 
     startGame();
     ammo -= 1;
     updateHud();
 
     const boardRect = gameBoard.getBoundingClientRect();
-    const marioRect = mario.getBoundingClientRect();
+    const heroRect = hero.getBoundingClientRect();
     const el = document.createElement('div');
-    el.className = 'game-entity fireball';
+    el.className = `game-entity fireball fireball--${selectedCharacterKey}`;
     el.setAttribute('aria-hidden', 'true');
-    el.style.bottom = `${boardRect.bottom - marioRect.bottom + marioRect.height * 0.43}px`;
+    el.style.bottom = `${boardRect.bottom - heroRect.bottom + heroRect.height * 0.43}px`;
     gameBoard.appendChild(el);
 
     projectiles.push({
         el,
-        x: marioRect.right - boardRect.left - 12,
-        speed: 620,
+        x: heroRect.right - boardRect.left - 10,
+        speed: selectedCharacter.projectileSpeed,
     });
 };
 
@@ -219,8 +348,20 @@ const updateEntityPosition = (entity) => {
     entity.el.style.transform = `translate3d(${entity.x}px, 0, 0)`;
 };
 
-const updateEnemies = (dt) => {
-    const marioRect = mario.getBoundingClientRect();
+const absorbEnemyWithShield = (enemy) => {
+    if (!selectedCharacter?.shield || shieldCharges <= 0) return false;
+
+    shieldCharges -= 1;
+    invulnerableUntil = performance.now() + 950;
+    hero.classList.add('is-shielded');
+    window.setTimeout(() => hero.classList.remove('is-shielded'), 650);
+    defeatEnemy(enemy, 'shield');
+    updateHud();
+    return true;
+};
+
+const updateEnemies = (dt, now) => {
+    const heroRect = hero.getBoundingClientRect();
 
     for (let i = enemies.length - 1; i >= 0; i -= 1) {
         const enemy = enemies[i];
@@ -239,11 +380,21 @@ const updateEnemies = (dt) => {
         }
 
         const enemyRect = enemy.el.getBoundingClientRect();
-        if (!overlaps(marioRect, enemyRect, 8)) continue;
+        if (!overlaps(heroRect, enemyRect, selectedCharacter.hitboxInset)) continue;
+        if (now < invulnerableUntil) continue;
 
-        const stomped = isJumping && marioRect.bottom <= enemyRect.top + enemyRect.height * 0.48;
+        const falling = heroVelocity < 0;
+        const stomped = falling && heroRect.bottom <= enemyRect.top + enemyRect.height * 0.55;
+
         if (stomped) {
-            defeatEnemy(enemy, false);
+            defeatEnemy(enemy, 'stomp');
+            enemies.splice(i, 1);
+            heroVelocity = Math.max(430, selectedCharacter.jumpVelocity * 0.62);
+            jumpsUsed = Math.min(jumpsUsed, selectedCharacter.maxJumps - 1);
+            continue;
+        }
+
+        if (absorbEnemyWithShield(enemy)) {
             enemies.splice(i, 1);
             continue;
         }
@@ -254,7 +405,7 @@ const updateEnemies = (dt) => {
 };
 
 const updateCollectibles = (dt) => {
-    const marioRect = mario.getBoundingClientRect();
+    const heroRect = hero.getBoundingClientRect();
 
     for (let i = collectibles.length - 1; i >= 0; i -= 1) {
         const item = collectibles[i];
@@ -267,15 +418,15 @@ const updateCollectibles = (dt) => {
         }
 
         const rect = item.el.getBoundingClientRect();
-        if (!overlaps(marioRect, rect, 5)) continue;
+        if (!overlaps(heroRect, rect, 5)) continue;
 
         if (item.type === 'coin') {
             coinCounter += 1;
             showPop('+1 🪙', rect);
         } else {
             const before = ammo;
-            ammo = Math.min(MAX_AMMO, ammo + 3);
-            showPop(`+${ammo - before} 🔥`, rect);
+            ammo = Math.min(MAX_AMMO, ammo + selectedCharacter.magicPickup);
+            showPop(`+${ammo - before} ✨`, rect);
         }
 
         updateHud();
@@ -304,27 +455,28 @@ const updateProjectiles = (dt) => {
             const enemyRect = enemy.el.getBoundingClientRect();
             if (!overlaps(shotRect, enemyRect, 2)) continue;
 
-            defeatEnemy(enemy, true);
+            defeatEnemy(enemy, 'magic');
             enemies.splice(j, 1);
             hitSomething = true;
             break;
         }
 
-        if (hitSomething) {
-            removeFromArray(projectiles, i);
-        }
+        if (hitSomething) removeFromArray(projectiles, i);
     }
 };
 
 const isPipeCollision = () => {
-    const marioRect = mario.getBoundingClientRect();
-    const pipeRect = pipe.getBoundingClientRect();
+    if (!selectedCharacter) return false;
 
-    const marioHitbox = {
-        left: marioRect.left + marioRect.width * 0.24,
-        right: marioRect.right - marioRect.width * 0.18,
-        top: marioRect.top + marioRect.height * 0.12,
-        bottom: marioRect.bottom - 6,
+    const heroRect = hero.getBoundingClientRect();
+    const pipeRect = pipe.getBoundingClientRect();
+    const inset = Math.max(4, selectedCharacter.hitboxInset);
+
+    const heroHitbox = {
+        left: heroRect.left + inset,
+        right: heroRect.right - inset,
+        top: heroRect.top + inset,
+        bottom: heroRect.bottom - 4,
     };
 
     const pipeHitbox = {
@@ -334,21 +486,16 @@ const isPipeCollision = () => {
         bottom: pipeRect.bottom,
     };
 
-    return (
-        marioHitbox.right > pipeHitbox.left &&
-        marioHitbox.left < pipeHitbox.right &&
-        marioHitbox.bottom > pipeHitbox.top &&
-        marioHitbox.top < pipeHitbox.bottom
-    );
+    return overlaps(heroHitbox, pipeHitbox, 0);
 };
 
 const getResultMessage = (isNewRecord, cause) => {
-    if (isNewRecord && jumpCounter > 0) return 'Novo recorde! E ainda teve tartaruga voando.';
-    if (koCounter >= 5) return `Você derrubou ${koCounter} tartarugas. Tá virando guerra.`;
-    if (cause === 'turtle') return 'A tartaruga levou essa. Na próxima, manda fogo nela.';
-    if (coinCounter >= 8) return `Boa coleta: ${coinCounter} moedas nessa rodada.`;
-    if (jumpCounter >= 10) return 'Boa sequência. Mais uma e passa.';
-    return 'Quase! Pega a flor de fogo e devolve o desaforo.';
+    const name = selectedCharacter?.name || 'Seu guerreiro';
+    if (isNewRecord && jumpCounter > 0) return `${name} bateu um novo recorde.`;
+    if (koCounter >= 6) return `${name} derrubou ${koCounter} inimigos. A coisa ficou séria.`;
+    if (cause === 'turtle') return 'A tartaruga levou essa. Usa magia ou acerta o pisão.';
+    if (coinCounter >= 10) return `Boa coleta: ${coinCounter} moedas nessa rodada.`;
+    return 'Quase. Troca de herói ou tenta mais uma.';
 };
 
 const finishGame = (cause = 'pipe') => {
@@ -359,16 +506,10 @@ const finishGame = (cause = 'pipe') => {
     gameBoard.classList.add('is-game-over');
 
     const pipeLeft = pipe.offsetLeft;
-    const marioBottom = Number.parseFloat(window.getComputedStyle(mario).bottom) || 0;
-
     pipe.style.animation = 'none';
     pipe.style.left = `${pipeLeft}px`;
     pipe.style.right = 'auto';
-
-    mario.style.animation = 'none';
-    mario.style.bottom = `${marioBottom}px`;
-    mario.src = MARIO_GAME_OVER_SRC;
-    mario.classList.add('is-dead');
+    hero.classList.add('is-dead');
 
     const isNewRecord = jumpCounter > bestScore;
     if (isNewRecord) {
@@ -376,7 +517,7 @@ const finishGame = (cause = 'pipe') => {
         try {
             localStorage.setItem(BEST_SCORE_KEY, String(bestScore));
         } catch {
-            // O jogo continua normalmente mesmo se o navegador bloquear o storage.
+            // Segue normalmente se o navegador bloquear armazenamento local.
         }
     }
 
@@ -396,27 +537,27 @@ const finishGame = (cause = 'pipe') => {
 const spawnEntities = (now) => {
     if (now >= nextEnemyAt) spawnEnemy(now);
     if (now >= nextCoinAt) spawnCoin(now);
-    if (now >= nextFireAt) spawnFirePickup(now);
+    if (now >= nextFireAt) spawnMagicPickup(now);
 };
 
 const gameLoop = (now) => {
     const dt = Math.min((now - lastFrameTime) / 1000, 0.04);
     lastFrameTime = now;
 
+    if (!isGameOver && selectedCharacter) {
+        updateHeroPhysics(dt);
+    }
+
     if (!isGameOver && isRunning) {
         spawnEntities(now);
         updateCollectibles(dt);
         updateProjectiles(dt);
-        updateEnemies(dt);
+        updateEnemies(dt, now);
 
-        if (!isGameOver && isPipeCollision()) {
-            finishGame('pipe');
-        }
+        if (!isGameOver && isPipeCollision()) finishGame('pipe');
     }
 
-    if (!isGameOver) {
-        animationFrameId = window.requestAnimationFrame(gameLoop);
-    }
+    if (!isGameOver) animationFrameId = window.requestAnimationFrame(gameLoop);
 };
 
 const clearEntities = () => {
@@ -427,11 +568,10 @@ const clearEntities = () => {
     gameBoard.querySelectorAll('.pickup-pop').forEach((el) => el.remove());
 };
 
-const restartGame = () => {
+const resetRound = ({ keepCharacter = true } = {}) => {
     if (animationFrameId) window.cancelAnimationFrame(animationFrameId);
 
     clearEntities();
-    isJumping = false;
     isRunning = false;
     isGameOver = false;
     jumpCounter = 0;
@@ -441,20 +581,38 @@ const restartGame = () => {
     nextEnemyAt = 0;
     nextCoinAt = 0;
     nextFireAt = 0;
+    heroY = 0;
+    heroVelocity = 0;
+    jumpsUsed = 0;
+    invulnerableUntil = 0;
 
     gameOverEl.hidden = true;
     gameBoard.classList.remove('is-running', 'is-game-over');
     startHint.classList.remove('is-hidden');
-
     pipe.removeAttribute('style');
-    mario.removeAttribute('style');
-    mario.classList.remove('jump', 'is-dead');
-    mario.src = MARIO_RUNNING_SRC;
+    hero.removeAttribute('style');
+    hero.classList.remove('is-dead', 'is-shielded');
+
+    if (keepCharacter && selectedCharacter) {
+        shieldCharges = selectedCharacter.shield;
+        gameBoard.classList.add('has-character');
+        characterSelect.hidden = true;
+        applyCharacterVisual();
+    } else {
+        selectedCharacterKey = null;
+        selectedCharacter = null;
+        shieldCharges = 0;
+        gameBoard.classList.remove('has-character');
+        characterSelect.hidden = false;
+        applyCharacterVisual();
+    }
 
     updateHud();
     lastFrameTime = performance.now();
     animationFrameId = window.requestAnimationFrame(gameLoop);
 };
+
+const openCharacterSelect = () => resetRound({ keepCharacter: false });
 
 const handleBoardPointer = (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -462,6 +620,8 @@ const handleBoardPointer = (event) => {
 };
 
 const handleKeydown = (event) => {
+    if (!characterSelect.hidden) return;
+
     if (['Space', 'ArrowUp', 'KeyW'].includes(event.code)) {
         event.preventDefault();
         jump();
@@ -475,9 +635,13 @@ const handleKeydown = (event) => {
 
     if (isGameOver && event.code === 'KeyR') {
         event.preventDefault();
-        restartGame();
+        resetRound({ keepCharacter: true });
     }
 };
+
+characterButtons.forEach((button) => {
+    button.addEventListener('click', () => selectCharacter(button.dataset.character));
+});
 
 document.addEventListener('keydown', handleKeydown);
 gameBoard.addEventListener('pointerdown', handleBoardPointer);
@@ -496,7 +660,17 @@ fireButton.addEventListener('pointerdown', (event) => {
 
 restartButton.addEventListener('click', (event) => {
     event.stopPropagation();
-    restartGame();
+    resetRound({ keepCharacter: true });
+});
+
+changeCharacterButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openCharacterSelect();
+});
+
+changeCharacterGameOver.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openCharacterSelect();
 });
 
 updateHud();
